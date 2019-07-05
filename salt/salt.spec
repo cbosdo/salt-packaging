@@ -52,7 +52,7 @@
 %bcond_with    builddocs
 
 Name:           salt
-Version:        2019.2.0
+Version:        2019.2.1
 Release:        0
 Summary:        A parallel remote execution system
 License:        Apache-2.0
@@ -108,15 +108,15 @@ Patch22:        make-profiles-a-package.patch
 Patch23:        add-cpe_name-for-osversion-grain-parsing-u-49946.patch
 # PATCH-FIX_OPENSUSE: Fix unit test for grains core
 Patch24:        fix-unit-test-for-grains-core.patch
-# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50049
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50072
+# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50049
 Patch25:        preserving-signature-in-module.run-state-u-50049.patch
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50095
 Patch26:        support-config-non-root-permission-issues-fixes-u-50.patch
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50018
 Patch27:        add-multi-file-support-and-globbing-to-the-filetree-.patch
-# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/49761
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50201
+# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/49761
 Patch28:        fixes-cve-2018-15750-cve-2018-15751.patch
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50417
 Patch29:        fix-git_pillar-merging-across-multiple-__env__-repos.patch
@@ -130,8 +130,8 @@ Patch32:        debian-info_installed-compatibility-50453.patch
 Patch33:        decide-if-the-source-should-be-actually-skipped.patch
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50773
 Patch34:        add-hold-unhold-functions.patch
-# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50401
 # NOTE: This is a techpreview as well as in Fluorine! Release only in Neon.
+# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50401
 Patch35:        add-supportconfig-module-for-remote-calls-and-saltss.patch
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50567
 Patch36:        azurefs-gracefully-handle-attributeerror.patch
@@ -145,63 +145,53 @@ Patch39:        fix-issue-2068-test.patch
 Patch40:        temporary-fix-extend-the-whitelist-of-allowed-comman.patch
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/51382
 Patch41:        don-t-call-zypper-with-more-than-one-no-refresh.patch
-# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50109
 # PATCH_FIX_OPENSUSE https://github.com/openSUSE/salt/pull/121
+# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50109
 Patch42:        add-virt.all_capabilities.patch
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/51691
 Patch43:        add-virt.volume_infos-and-virt.volume_delete.patch
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/51384
 Patch44:        include-aliases-in-the-fqdns-grains.patch
-# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50546
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/51863
+# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/50546
 Patch45:        async-batch-implementation.patch
-# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/51905
-Patch46:        mount-fix-extra-t-parameter.patch
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/52527
-Patch47:        calculate-fqdns-in-parallel-to-avoid-blockings-bsc-1.patch
+Patch46:        calculate-fqdns-in-parallel-to-avoid-blockings-bsc-1.patch
 #PATCH-FIX_OPENSUSE: https://github.com/openSUSE/salt/pull/139
-Patch48:       fix-async-batch-race-conditions.patch
+Patch47:        fix-async-batch-race-conditions.patch
 #PATCH-FIX_OPENSUSE: https://github.com/openSUSE/salt/pull/141
-Patch49:       add-batch_presence_ping_timeout-and-batch_presence_p.patch
+Patch48:        add-batch_presence_ping_timeout-and-batch_presence_p.patch
 #PATCH-FIX_UPSTREAM: https://github.com/saltstack/salt/pull/52657
-Patch50:       do-not-report-patches-as-installed-when-not-all-the-.patch
+Patch49:        do-not-report-patches-as-installed-when-not-all-the-.patch
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/52527
-Patch51:       use-threadpool-from-multiprocessing.pool-to-avoid-le.patch
+Patch50:        use-threadpool-from-multiprocessing.pool-to-avoid-le.patch
 # PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/52519 (partial porting)
-Patch52:       fix-syndic-start-issue.patch
-# PATCH-FIX_UPSTREAM https://github.com/saltstack/salt/pull/52888
-Patch53:       do-not-crash-when-there-are-ipv6-established-connect.patch
-# PATCH-FIX_OPENSUSE: https://github.com/openSUSE/salt/pull/144
+Patch51:        fix-syndic-start-issue.patch
 # PATCH-FIX_UPSTREAM: https://github.com/saltstack/salt/pull/52855
-Patch54:       fix-async-batch-multiple-done-events.patch
+# PATCH-FIX_OPENSUSE: https://github.com/openSUSE/salt/pull/144
+Patch52:        fix-async-batch-multiple-done-events.patch
 # PATCH-FIX_UPSTREAM: https://github.com/saltstack/salt/pull/52743
-Patch55:       switch-firewalld-state-to-use-change_interface.patch
+Patch53:        switch-firewalld-state-to-use-change_interface.patch
 # PATCH-FIX_OPENSUSE
-Patch56:       add-standalone-configuration-file-for-enabling-packa.patch
+Patch54:        add-standalone-configuration-file-for-enabling-packa.patch
 # PATCH-FIX_UPSTREAM: https://github.com/saltstack/salt/pull/53237
-Patch57:       add-ppc64le-as-a-valid-rpm-package-architecture.patch
+Patch55:        add-ppc64le-as-a-valid-rpm-package-architecture.patch
 # PATCH-FIX_UPSTREAM: https://github.com/saltstack/salt/pull/53293
-Patch58:       do-not-break-repo-files-with-multiple-line-values-on.patch
+Patch56:        do-not-break-repo-files-with-multiple-line-values-on.patch
 # PATCH-FIX_UPSTREAM: https://github.com/saltstack/salt/pull/53343
-Patch59:       preserve-already-defined-destructive_tests-and-expen.patch
+Patch57:        preserve-already-defined-destructive_tests-and-expen.patch
 # PATCH-FIX_UPSTREAM: https://github.com/saltstack/salt/pull/53159
-Patch60:       batch.py-avoid-exception-when-minion-does-not-respon.patch
+Patch58:        batch.py-avoid-exception-when-minion-does-not-respon.patch
 # PATCH_FIX_UPSTREAM: https://github.com/saltstack/salt/pull/53471
-Patch61:       fix-zypper-pkg.list_pkgs-expectation-and-dpkg-mockin.patch
-# PATCH_FIX_OPENSUSE: https://github.com/openSUSE/salt/pull/142
-Patch62:       try-except-undefineflags-as-this-operation-is-not-su.patch
-# PATCH_FIX_UPSTREAM: https://github.com/saltstack/salt/pull/52160
-Patch63:       virt-handle-whitespaces-in-vm-names.patch
-# PATCH_FIX_UPSTREAM: https://github.com/saltstack/salt/pull/52341
-Patch64:       virt.pool_running-fix-pool-start.patch
+Patch59:        fix-zypper-pkg.list_pkgs-expectation-and-dpkg-mockin.patch
 # PATCH_FIX_UPSTREAM: https://github.com/saltstack/salt/pull/52414
-Patch65:       virt.volume_infos-fix-for-single-vm.patch
+Patch60:        virt.volume_infos-fix-for-single-vm.patch
 # PATCH-FIX_OPENSUSE: https://github.com/openSUSE/salt/pull/161
-Patch66:       provide-the-missing-features-required-for-yomi-yet-o.patch
+Patch61:        provide-the-missing-features-required-for-yomi-yet-o.patch
 # PATCH_FIX_UPSTREAM: https://github.com/saltstack/salt/pull/53661
-Patch67:       do-not-make-ansiblegate-to-crash-on-python3-minions.patch
+Patch62:        do-not-make-ansiblegate-to-crash-on-python3-minions.patch
 # PATCH_FIX_UPSTREAM: https://github.com/saltstack/salt/pull/53693
-Patch68:       allow-passing-kwargs-to-pkg.list_downloaded-bsc-1140.patch
+Patch63:        allow-passing-kwargs-to-pkg.list_downloaded-bsc-1140.patch
 
 # BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -668,8 +658,8 @@ This package adds the standalone configuration for the Salt master in order to m
 
 
 %prep
-# %setup -q -n salt-%{version}
-%setup -q -n salt-2019.2.0-suse
+%setup -q -n salt-%{version}
+#%setup -q -n salt-2019.2.0-suse
 cp %{S:1} .
 cp %{S:5} ./.travis.yml
 %patch1 -p1
@@ -735,11 +725,6 @@ cp %{S:5} ./.travis.yml
 %patch61 -p1
 %patch62 -p1
 %patch63 -p1
-%patch64 -p1
-%patch65 -p1
-%patch66 -p1
-%patch67 -p1
-%patch68 -p1
 
 %build
 %if 0%{?build_py2}

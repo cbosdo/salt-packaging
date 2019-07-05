@@ -1,4 +1,4 @@
-From 121e37f185057f1135ccf89738e3a59c581d9efb Mon Sep 17 00:00:00 2001
+From e390969a03aa14a43d1b3f06d8bc9791ab54a5c0 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Pablo=20Su=C3=A1rez=20Hern=C3=A1ndez?=
  <psuarezhernandez@suse.com>
 Date: Thu, 20 Jun 2019 12:52:45 +0100
@@ -27,7 +27,7 @@ Subject: [PATCH] Provide the missing features required for Yomi (Yet one
  salt/modules/mac_brew_pkg.py                 |    8 +-
  salt/modules/mac_portspkg.py                 |    6 +-
  salt/modules/mdadm_raid.py                   |   14 +-
- salt/modules/mount.py                        |   56 +-
+ salt/modules/mount.py                        |   43 +-
  salt/modules/openbsdpkg.py                   |    2 +-
  salt/modules/pacmanpkg.py                    |   10 +-
  salt/modules/parted_partition.py             |   91 +-
@@ -54,7 +54,6 @@ Subject: [PATCH] Provide the missing features required for Yomi (Yet one
  salt/states/pkgrepo.py                       |   14 +-
  salt/utils/oset.py                           |    7 +-
  salt/utils/path.py                           |    7 +-
- salt/utils/systemd.py                        |    5 +-
  tests/conftest.py                            |   10 +-
  tests/unit/grains/test_core.py               |   39 +
  tests/unit/modules/test_btrfs.py             |  370 ++++-
@@ -62,7 +61,7 @@ Subject: [PATCH] Provide the missing features required for Yomi (Yet one
  tests/unit/modules/test_freezer.py           |  274 ++++
  tests/unit/modules/test_groupadd.py          |   16 +-
  tests/unit/modules/test_kubeadm.py           | 1144 ++++++++++++++++
- tests/unit/modules/test_mount.py             |  154 ++-
+ tests/unit/modules/test_mount.py             |  118 +-
  tests/unit/modules/test_parted_partition.py  |   17 +
  tests/unit/modules/test_rpm_lowpkg.py        |   92 +-
  tests/unit/modules/test_systemd_service.py   |   57 +-
@@ -72,8 +71,7 @@ Subject: [PATCH] Provide the missing features required for Yomi (Yet one
  tests/unit/states/test_mount.py              |  605 +++++++++
  tests/unit/states/test_pkg.py                |    7 +-
  tests/unit/test_loader.py                    |   96 +-
- tests/unit/utils/test_systemd.py             |   21 +
- 67 files changed, 8570 insertions(+), 648 deletions(-)
+ 65 files changed, 8503 insertions(+), 640 deletions(-)
  create mode 100644 doc/ref/modules/all/salt.modules.kubeadm.rst
  create mode 100644 salt/modules/chroot.py
  create mode 100644 salt/modules/freezer.py
@@ -85,15 +83,15 @@ Subject: [PATCH] Provide the missing features required for Yomi (Yet one
  create mode 100644 tests/unit/states/test_btrfs.py
 
 diff --git a/doc/ref/modules/all/index.rst b/doc/ref/modules/all/index.rst
-index 9762347faf..eaf7e25450 100644
+index f89be3dfb5..bf87e084e5 100644
 --- a/doc/ref/modules/all/index.rst
 +++ b/doc/ref/modules/all/index.rst
-@@ -208,6 +208,7 @@ execution modules
+@@ -212,6 +212,7 @@ execution modules
      keystone
      keystoneng
      kmod
 +    kubeadm
-     kubernetes
+     kubernetesmod
      launchctl_service
      layman
 diff --git a/doc/ref/modules/all/salt.modules.kubeadm.rst b/doc/ref/modules/all/salt.modules.kubeadm.rst
@@ -108,7 +106,7 @@ index 0000000000..137c779da2
 +.. automodule:: salt.modules.kubeadm
 +    :members:
 diff --git a/salt/grains/core.py b/salt/grains/core.py
-index fec7b204bc..ce64620a24 100644
+index 666b7db47e..b66f1a5947 100644
 --- a/salt/grains/core.py
 +++ b/salt/grains/core.py
 @@ -108,6 +108,10 @@ if not hasattr(os, 'uname'):
@@ -122,7 +120,7 @@ index fec7b204bc..ce64620a24 100644
  
  def _windows_cpudata():
      '''
-@@ -2208,7 +2212,7 @@ def fqdns():
+@@ -2253,7 +2257,7 @@ def fqdns():
              name, aliaslist, addresslist = socket.gethostbyaddr(ip)
              return [socket.getfqdn(name)] + [als for als in aliaslist if salt.utils.network.is_fqdn(als)]
          except socket.herror as err:
@@ -131,7 +129,7 @@ index fec7b204bc..ce64620a24 100644
                  # No FQDN for this IP address, so we don't need to know this all the time.
                  log.debug("Unable to resolve address %s: %s", ip, err)
              else:
-@@ -2529,6 +2533,10 @@ def _hw_data(osdata):
+@@ -2574,6 +2578,10 @@ def _hw_data(osdata):
                          grains[key] = salt.utils.stringutils.to_unicode(ifile.read().strip(), errors='replace')
                          if key == 'uuid':
                              grains['uuid'] = grains['uuid'].lower()
@@ -142,7 +140,7 @@ index fec7b204bc..ce64620a24 100644
                  except (IOError, OSError) as err:
                      # PermissionError is new to Python 3, but corresponds to the EACESS and
                      # EPERM error numbers. Use those instead here for PY2 compatibility.
-@@ -2760,26 +2768,6 @@ def _hw_data(osdata):
+@@ -2805,26 +2813,6 @@ def _hw_data(osdata):
          else:
              log.error('The \'prtconf\' binary was not found in $PATH.')
  
@@ -170,7 +168,7 @@ index fec7b204bc..ce64620a24 100644
  
  
 diff --git a/salt/loader.py b/salt/loader.py
-index 6760d9e720..1d8a4b90fd 100644
+index aab1f7e07d..73169df970 100644
 --- a/salt/loader.py
 +++ b/salt/loader.py
 @@ -253,6 +253,7 @@ def minion_mods(
@@ -1190,10 +1188,10 @@ index 0000000000..6e4705b67e
 +    finally:
 +        __utils__['files.rm_rf'](thin_dest_path)
 diff --git a/salt/modules/cmdmod.py b/salt/modules/cmdmod.py
-index 81c4d3f811..d0819f2f79 100644
+index a733e396ce..c57b0165ac 100644
 --- a/salt/modules/cmdmod.py
 +++ b/salt/modules/cmdmod.py
-@@ -2889,6 +2889,7 @@ def run_chroot(root,
+@@ -2893,6 +2893,7 @@ def run_chroot(root,
                 group=None,
                 shell=DEFAULT_SHELL,
                 python_shell=True,
@@ -1201,7 +1199,7 @@ index 81c4d3f811..d0819f2f79 100644
                 env=None,
                 clean_env=False,
                 template=None,
-@@ -2914,19 +2915,17 @@ def run_chroot(root,
+@@ -2918,19 +2919,17 @@ def run_chroot(root,
  
      :param str root: Path to the root of the jail to use.
  
@@ -1229,7 +1227,7 @@ index 81c4d3f811..d0819f2f79 100644
  
      :param str cmd: The command to run. ex: ``ls -lart /home``
  
-@@ -2950,6 +2949,9 @@ def run_chroot(root,
+@@ -2954,6 +2953,9 @@ def run_chroot(root,
          arguments. Set to True to use shell features, such as pipes or
          redirection.
  
@@ -1239,7 +1237,7 @@ index 81c4d3f811..d0819f2f79 100644
      :param dict env: Environment variables to be set prior to execution.
  
          .. note::
-@@ -2968,11 +2970,11 @@ def run_chroot(root,
+@@ -2972,11 +2974,11 @@ def run_chroot(root,
          engine will be used to render the downloaded file. Currently jinja,
          mako, and wempy are supported.
  
@@ -1255,7 +1253,7 @@ index 81c4d3f811..d0819f2f79 100644
  
      :param str output_encoding: Control the encoding used to decode the
          command's output.
-@@ -3046,6 +3048,15 @@ def run_chroot(root,
+@@ -3050,6 +3052,15 @@ def run_chroot(root,
          'sysfs',
          fstype='sysfs')
  
@@ -1271,7 +1269,7 @@ index 81c4d3f811..d0819f2f79 100644
      # Execute chroot routine
      sh_ = '/bin/sh'
      if os.path.isfile(os.path.join(root, 'bin/bash')):
-@@ -3096,6 +3107,11 @@ def run_chroot(root,
+@@ -3100,6 +3111,11 @@ def run_chroot(root,
          log.error('Processes running in chroot could not be killed, '
                    'filesystem will remain mounted')
  
@@ -3567,7 +3565,7 @@ index 829f4cdd24..1581a558b6 100644
  
      for line in res.splitlines():
 diff --git a/salt/modules/mount.py b/salt/modules/mount.py
-index e807b1729e..f2737b9a5c 100644
+index 97263252c7..f2737b9a5c 100644
 --- a/salt/modules/mount.py
 +++ b/salt/modules/mount.py
 @@ -711,11 +711,15 @@ def set_fstab(
@@ -3642,31 +3640,16 @@ index e807b1729e..f2737b9a5c 100644
                      if comps[0] != name:
                          change = True
                          comps[0] = name
-@@ -1212,14 +1223,17 @@ def mount(name, device, mkmnt=False, fstype='', opts='defaults', user=None, util
-         lopts = ','.join(opts)
-         args = '-o {0}'.format(lopts)
- 
--    # use of fstype on AIX differs from typical Linux use of -t functionality
--    # AIX uses -v vfsname, -t fstype mounts all with fstype in /etc/filesystems
--    if 'AIX' in __grains__['os']:
--        if fstype:
-+    if fstype:
-+        # use of fstype on AIX differs from typical Linux use of -t
-+        # functionality AIX uses -v vfsname, -t fstype mounts all with
-+        # fstype in /etc/filesystems
-+        if 'AIX' in __grains__['os']:
+@@ -1218,6 +1229,8 @@ def mount(name, device, mkmnt=False, fstype='', opts='defaults', user=None, util
+         # fstype in /etc/filesystems
+         if 'AIX' in __grains__['os']:
              args += ' -v {0}'.format(fstype)
--    else:
--        if fstype:
 +        elif 'solaris' in __grains__['os'].lower():
 +            args += ' -F {0}'.format(fstype)
-+        else:
+         else:
              args += ' -t {0}'.format(fstype)
-+
-     cmd = 'mount {0} {1} {2} '.format(args, device, name)
-     out = __salt__['cmd.run_all'](cmd, runas=user, python_shell=False)
-     if out['retcode']:
-@@ -1247,7 +1261,7 @@ def remount(name, device, mkmnt=False, fstype='', opts='defaults', user=None):
+ 
+@@ -1248,7 +1261,7 @@ def remount(name, device, mkmnt=False, fstype='', opts='defaults', user=None):
  
      if 'AIX' in __grains__['os']:
          if opts == 'defaults':
@@ -3675,7 +3658,7 @@ index e807b1729e..f2737b9a5c 100644
  
      if isinstance(opts, six.string_types):
          opts = opts.split(',')
-@@ -1262,14 +1276,16 @@ def remount(name, device, mkmnt=False, fstype='', opts='defaults', user=None):
+@@ -1263,14 +1276,16 @@ def remount(name, device, mkmnt=False, fstype='', opts='defaults', user=None):
          lopts = ','.join(opts)
          args = '-o {0}'.format(lopts)
  
@@ -3699,7 +3682,7 @@ index e807b1729e..f2737b9a5c 100644
  
          if __grains__['os'] not in ['OpenBSD', 'MacOS', 'Darwin'] or force_mount:
              cmd = 'mount {0} {1} {2} '.format(args, device, name)
-@@ -1667,6 +1683,7 @@ def set_filesystems(
+@@ -1668,6 +1683,7 @@ def set_filesystems(
          config='/etc/filesystems',
          test=False,
          match_on='auto',
@@ -3707,7 +3690,7 @@ index e807b1729e..f2737b9a5c 100644
          **kwargs):
      '''
      .. versionadded:: 2018.3.3
-@@ -1674,6 +1691,9 @@ def set_filesystems(
+@@ -1675,6 +1691,9 @@ def set_filesystems(
      Verify that this mount is represented in the filesystems, change the mount
      to match the data passed, or add the mount if it is not present on AIX
  
@@ -3717,7 +3700,7 @@ index e807b1729e..f2737b9a5c 100644
          Provide information if the path is mounted
  
      :param name:          The name of the mount point where the device is mounted.
-@@ -1773,7 +1793,7 @@ def set_filesystems(
+@@ -1774,7 +1793,7 @@ def set_filesystems(
          for fsys_view in six.viewitems(fsys_filedict):
              if criteria.match(fsys_view):
                  ret = 'present'
@@ -8230,10 +8213,10 @@ index 4d20b51381..86934f9ffc 100644
          return ret
  
 diff --git a/salt/states/file.py b/salt/states/file.py
-index 15bb93e5ec..8823a7c8cf 100644
+index 4e451c58f8..c98081fa7f 100644
 --- a/salt/states/file.py
 +++ b/salt/states/file.py
-@@ -276,7 +276,11 @@ import shutil
+@@ -291,7 +291,11 @@ import shutil
  import sys
  import time
  import traceback
@@ -8868,29 +8851,6 @@ index b1d601e464..132190b271 100644
          return None
      for exe in exes:
          path = which(exe)
-diff --git a/salt/utils/systemd.py b/salt/utils/systemd.py
-index 7790b3567d..060bc1e3fb 100644
---- a/salt/utils/systemd.py
-+++ b/salt/utils/systemd.py
-@@ -6,6 +6,7 @@ Contains systemd related help files
- from __future__ import absolute_import, print_function, unicode_literals
- import logging
- import os
-+import re
- import subprocess
- 
- # Import Salt libs
-@@ -65,8 +66,8 @@ def version(context=None):
-         stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
-     outstr = salt.utils.stringutils.to_str(stdout)
-     try:
--        ret = int(outstr.splitlines()[0].split()[-1])
--    except (IndexError, ValueError):
-+        ret = int(re.search(r'\w+ ([0-9]+)', outstr.splitlines()[0]).group(1))
-+    except (AttributeError, IndexError, ValueError):
-         log.error(
-             'Unable to determine systemd version from systemctl '
-             '--version, output follows:\n%s', outstr
 diff --git a/tests/conftest.py b/tests/conftest.py
 index 906cca6dd5..1dbe2176b6 100644
 --- a/tests/conftest.py
@@ -8934,10 +8894,10 @@ index 906cca6dd5..1dbe2176b6 100644
          only_local_network = requires_network_marker.kwargs.get('only_local_network', False)
          has_local_network = False
 diff --git a/tests/unit/grains/test_core.py b/tests/unit/grains/test_core.py
-index 117e02c39f..5fa0ea06f1 100644
+index df4eac862e..7c35f8cc17 100644
 --- a/tests/unit/grains/test_core.py
 +++ b/tests/unit/grains/test_core.py
-@@ -1062,3 +1062,42 @@ class CoreGrainsTestCase(TestCase, LoaderModuleMockMixin):
+@@ -1192,3 +1192,42 @@ class CoreGrainsTestCase(TestCase, LoaderModuleMockMixin):
              ret = core._osx_memdata()
              assert ret['swap_total'] == 0
              assert ret['mem_total'] == 4096
@@ -11026,7 +10986,7 @@ index 0000000000..a58f54f118
 +            with pytest.raises(CommandExecutionError):
 +                assert kubeadm.reset()
 diff --git a/tests/unit/modules/test_mount.py b/tests/unit/modules/test_mount.py
-index a9df52f1d8..fe9b067665 100644
+index 1a0d64f2f5..fe9b067665 100644
 --- a/tests/unit/modules/test_mount.py
 +++ b/tests/unit/modules/test_mount.py
 @@ -216,6 +216,21 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
@@ -11095,65 +11055,16 @@ index a9df52f1d8..fe9b067665 100644
  
              mock_read = MagicMock(side_effect=OSError)
              with patch.object(os.path, 'isfile', mock):
-@@ -305,6 +348,13 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
-                                                    'stderr': True})
-                     with patch.dict(mount.__salt__, {'cmd.run_all': mock}):
-                         self.assertTrue(mount.mount('name', 'device'))
-+                        mock.assert_called_with('mount  device name ',
-+                                                python_shell=False, runas=None)
-+
-+                    with patch.dict(mount.__salt__, {'cmd.run_all': mock}):
-+                        self.assertTrue(mount.mount('name', 'device', fstype='fstype'))
-+                        mock.assert_called_with('mount  -t fstype device name ',
-+                                                python_shell=False, runas=None)
- 
-                     mock = MagicMock(return_value={'retcode': False,
-                                                    'stderr': False})
-@@ -320,13 +370,42 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
-                                                    'stderr': True})
-                     with patch.dict(mount.__salt__, {'cmd.run_all': mock}):
-                         self.assertTrue(mount.mount('name', 'device'))
-+                        mock.assert_called_with('mount  device name ',
-+                                                python_shell=False, runas=None)
-+
-+                    with patch.dict(mount.__salt__, {'cmd.run_all': mock}):
-+                        self.assertTrue(mount.mount('name', 'device', fstype='fstype'))
-+                        mock.assert_called_with('mount  -v fstype device name ',
-+                                                python_shell=False, runas=None)
- 
-                     mock = MagicMock(return_value={'retcode': False,
-                                                    'stderr': False})
+@@ -362,7 +405,7 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
                      with patch.dict(mount.__salt__, {'cmd.run_all': mock}):
                          self.assertTrue(mount.mount('name', 'device'))
  
 -    def test_remount(self):
-+        with patch.dict(mount.__grains__, {'os': 'Linux'}):
-+            mock = MagicMock(return_value=True)
-+            with patch.object(os.path, 'exists', mock):
-+                mock = MagicMock(return_value=None)
-+                with patch.dict(mount.__salt__, {'file.mkdir': None}):
-+                    mock = MagicMock(return_value={'retcode': True,
-+                                                   'stderr': True})
-+                    with patch.dict(mount.__salt__, {'cmd.run_all': mock}):
-+                        self.assertTrue(mount.mount('name', 'device'))
-+                        mock.assert_called_with('mount -o defaults device name ',
-+                                                python_shell=False, runas=None)
-+
-+                    with patch.dict(mount.__salt__, {'cmd.run_all': mock}):
-+                        self.assertTrue(mount.mount('name', 'device', fstype='fstype'))
-+                        mock.assert_called_with('mount -o defaults -t fstype device name ',
-+                                                python_shell=False, runas=None)
-+
-+                    mock = MagicMock(return_value={'retcode': False,
-+                                                   'stderr': False})
-+                    with patch.dict(mount.__salt__, {'cmd.run_all': mock}):
-+                        self.assertTrue(mount.mount('name', 'device'))
-+
 +    def test_remount_non_mounted(self):
          '''
          Attempt to remount a device, if the device is not already mounted, mount
          is called
-@@ -345,6 +424,77 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
+@@ -381,6 +424,77 @@ class MountTestCase(TestCase, LoaderModuleMockMixin):
                  with patch.object(mount, 'mount', mock):
                      self.assertTrue(mount.remount('name', 'device'))
  
@@ -13174,7 +13085,7 @@ index 42fe6c6867..d30e064167 100644
          with patch.dict(pkg.__salt__,
                          {'pkg.list_upgrades': list_upgrades,
 diff --git a/tests/unit/test_loader.py b/tests/unit/test_loader.py
-index 0f22334559..ba8739a6b2 100644
+index dd0ce8e2e2..38dcb18109 100644
 --- a/tests/unit/test_loader.py
 +++ b/tests/unit/test_loader.py
 @@ -119,6 +119,97 @@ class LazyLoaderTest(TestCase):
@@ -13287,38 +13198,6 @@ index 0f22334559..ba8739a6b2 100644
  
      def test_auth(self):
          '''
-diff --git a/tests/unit/utils/test_systemd.py b/tests/unit/utils/test_systemd.py
-index 248ff44579..bddfee5e54 100644
---- a/tests/unit/utils/test_systemd.py
-+++ b/tests/unit/utils/test_systemd.py
-@@ -100,6 +100,27 @@ class SystemdTestCase(TestCase):
-             self.assertTrue(_systemd.version(context))
-             self.assertEqual(context, {'salt.utils.systemd.version': _version})
- 
-+    def test_version_generated_from_git_describe(self):
-+        '''
-+        Test with version string matching versions generated by git describe
-+        in systemd. This feature is used in systemd>=241.
-+        '''
-+        with patch('subprocess.Popen') as popen_mock:
-+            _version = 241
-+            output = 'systemd {0} ({0}.0-0-dist)\n-SYSVINIT'.format(_version)
-+            popen_mock.return_value = Mock(
-+                communicate=lambda *args, **kwargs: (output, None),
-+                pid=lambda: 12345,
-+                retcode=0
-+            )
-+
-+            # Test without context dict passed
-+            self.assertEqual(_systemd.version(), _version)
-+            # Test that context key is set when context dict is passed
-+            context = {}
-+            self.assertTrue(_systemd.version(context))
-+            self.assertEqual(context, {'salt.utils.systemd.version': _version})
-+
-     def test_version_return_from_context(self):
-         '''
-         Test that the context data is returned when present. To ensure we're
 -- 
 2.21.0
 

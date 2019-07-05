@@ -1,16 +1,17 @@
-From 722b9395a6489da7626e6a388c78bf8e8812190e Mon Sep 17 00:00:00 2001
+From 30c048c5ff2e1b688fb0fc5573b20b2d00e1feae Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Pablo=20Su=C3=A1rez=20Hern=C3=A1ndez?=
  <psuarezhernandez@suse.com>
 Date: Fri, 12 Apr 2019 16:47:03 +0100
-Subject: [PATCH] Calculate FQDNs in parallel to avoid blockings (bsc#1129079)
+Subject: [PATCH] Calculate FQDNs in parallel to avoid blockings
+ (bsc#1129079)
 
 Fix pylint issue
 ---
- salt/grains/core.py | 31 ++++++++++++++++++++++++++-----
- 1 file changed, 26 insertions(+), 5 deletions(-)
+ salt/grains/core.py | 28 ++++++++++++++++++++++++++--
+ 1 file changed, 26 insertions(+), 2 deletions(-)
 
 diff --git a/salt/grains/core.py b/salt/grains/core.py
-index 05a9d5035d..796458939d 100644
+index e30667be98..d76c44d3e7 100644
 --- a/salt/grains/core.py
 +++ b/salt/grains/core.py
 @@ -20,11 +20,14 @@ import platform
@@ -28,13 +29,10 @@ index 05a9d5035d..796458939d 100644
  # pylint: disable=import-error
  try:
      import dateutil.tz
-@@ -2200,13 +2203,10 @@ def fqdns():
-     grains = {}
-     fqdns = set()
- 
--    addresses = salt.utils.network.ip_addrs(include_loopback=False, interface_data=_get_interfaces())
--    addresses.extend(salt.utils.network.ip_addrs6(include_loopback=False, interface_data=_get_interfaces()))
--    err_message = 'Exception during resolving address: %s'
+@@ -2250,10 +2253,10 @@ def fqdns():
+     addresses.extend(salt.utils.network.ip_addrs6(include_loopback=False,
+                                                   interface_data=_get_interfaces()))
+     err_message = 'An exception occurred resolving address \'%s\': %s'
 -    for ip in addresses:
 +    def _lookup_fqdn(ip):
          try:
@@ -44,9 +42,9 @@ index 05a9d5035d..796458939d 100644
          except socket.herror as err:
              if err.errno == 0:
                  # No FQDN for this IP address, so we don't need to know this all the time.
-@@ -2216,6 +2216,27 @@ def fqdns():
+@@ -2263,6 +2266,27 @@ def fqdns():
          except (socket.error, socket.gaierror, socket.timeout) as err:
-             log.error(err_message, err)
+             log.error(err_message, ip, err)
  
 +    start = time.time()
 +
@@ -73,5 +71,6 @@ index 05a9d5035d..796458939d 100644
  
  
 -- 
-2.17.1
+2.21.0
+
 
