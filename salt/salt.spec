@@ -192,6 +192,7 @@ Patch61:        provide-the-missing-features-required-for-yomi-yet-o.patch
 Patch62:        do-not-make-ansiblegate-to-crash-on-python3-minions.patch
 # PATCH_FIX_UPSTREAM: https://github.com/saltstack/salt/pull/53693
 Patch63:        allow-passing-kwargs-to-pkg.list_downloaded-bsc-1140.patch
+Patch64:        prevent-ansiblegate-unit-tests-to-fail-on-ubuntu.patch
 
 # BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -725,6 +726,7 @@ cp %{S:5} ./.travis.yml
 %patch61 -p1
 %patch62 -p1
 %patch63 -p1
+%patch64 -p1
 
 %build
 %if 0%{?build_py2}
